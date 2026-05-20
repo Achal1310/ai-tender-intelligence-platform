@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body onload="loadDashboard()">
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-card"><div class="spinner"></div><span>Loading dashboard...</span></div>
+  </div>
+  <div class="topbar">
+    <strong>AI Tender Intelligence Platform</strong>
+    <div>
+      <a href="upload.html" style="color:white;margin-right:10px;">Upload Tender</a>
+      <a href="#" onclick="logout()" style="color:white;">Logout</a>
+    </div>
+  </div>
+  <div class="container">
+    <div class="grid">
+      <div class="card"><h4>Total Tenders</h4><p id="totalTenders" class="metric">0</p></div>
+      <div class="card"><h4>Total BOQ Cost</h4><p id="totalCost" class="metric">0</p></div>
+      <div class="card"><h4>Risk Alerts</h4><p id="riskAlerts" class="metric">0</p></div>
+    </div>
+
+    <div class="card">
+      <h3>Uploaded Tenders</h3>
+      <table id="tenderTable">
+        <thead><tr><th>Title</th><th>Summary</th><th>Date</th><th>Actions</th></tr></thead>
+        <tbody id="tenderRows"></tbody>
+      </table>
+      <p id="emptyText" class="muted" style="display:none;">No tenders yet. Upload your first tender to begin analysis.</p>
+    </div>
+  </div>
+  <script src="js/api.js"></script>
+  <script>
+    function logout() { localStorage.removeItem("token"); location.href = "index.html"; }
+
+    async function loadDashboard() {
+      try {
+        const tenders = await apiFetch("/tenders");
+        document.getElementById("totalTenders").innerText = tenders.length;
+        let totalCost = 0;
+        let riskAlerts = 0;
+        const rows = [];
+        for (const t of tenders) {
+          if ((t.summary || "").toLowerCase().includes("risk")) riskAlerts++;
+          const costMatch = (t.summary || "").match(/Estimated Cost:\s*([0-9.]+)/);
+          if (costMatch) totalCost += Number(costMatch[1]);
+          rows.push(`<tr>
+            <td>${t.title}</td>
+            <td>${(t.summary || "").slice(0, 120)}</td>
+            <td>${new Date(t.upload_date).toLocaleString()}</td>
+            <td>
+              <a href="tender-detail.html?id=${t.id}">View</a>
+            </td>
+          </tr>`);
+        }
+        document.getElementById("totalCost").innerText = totalCost.toFixed(2);
+        document.getElementById("riskAlerts").innerText = riskAlerts;
+        document.getElementById("tenderRows").innerHTML = rows.join("");
+        document.getElementById("emptyText").style.display = tenders.length ? "none" : "block";
+        document.getElementById("tenderTable").style.display = tenders.length ? "table" : "none";
+      } catch (e) {
+        alert("Failed to load dashboard: " + apiErrorMessage(e));
+      }
+    }
+  </script>
+</body>
+</html>

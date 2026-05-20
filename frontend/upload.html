@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Upload Tender</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-card"><div class="spinner"></div><span>Uploading and analyzing...</span></div>
+  </div>
+  <div class="topbar">
+    <strong>Upload Tender</strong>
+    <a href="dashboard.html" style="color:white;">Back to Dashboard</a>
+  </div>
+  <div class="container">
+    <div class="card" style="max-width: 700px;">
+      <h3>Upload PDF Tender</h3>
+      <p class="muted">PDF only. OCR and AI analysis will start after upload.</p>
+      <input id="title" placeholder="Tender Title" />
+      <input id="file" type="file" accept="application/pdf" />
+      <button id="uploadBtn" onclick="uploadTender()">Upload and Analyze</button>
+      <p id="msg" class="message"></p>
+    </div>
+  </div>
+  <script src="js/api.js"></script>
+  <script>
+    async function uploadTender() {
+      const btn = document.getElementById("uploadBtn");
+      const msg = document.getElementById("msg");
+      msg.className = "message";
+      try {
+        const title = document.getElementById("title").value.trim();
+        const file = document.getElementById("file").files[0];
+        if (!title || !file) {
+          throw new Error("Please provide both title and PDF file.");
+        }
+        btn.disabled = true;
+        const formData = new FormData();
+        formData.append("title", title);
+        formData.append("file", file);
+        const tender = await apiFetch("/upload-tender", { method: "POST", body: formData });
+        msg.className = "message success";
+        msg.innerText = "Upload successful. Running analysis...";
+        await apiFetch("/analyze-tender", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tender_id: tender.id })
+        });
+        location.href = "tender-detail.html?id=" + tender.id;
+      } catch (e) {
+        msg.className = "message error";
+        msg.innerText = "Upload failed: " + apiErrorMessage(e);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>

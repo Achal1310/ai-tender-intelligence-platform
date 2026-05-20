@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Tender - Register</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-card"><div class="spinner"></div><span>Working...</span></div>
+  </div>
+  <div class="container">
+    <div class="card" style="max-width: 420px; margin: 80px auto;">
+      <h2>Create Account</h2>
+      <input id="name" placeholder="Full Name" />
+      <input id="email" type="email" placeholder="Email" />
+      <input id="password" type="password" placeholder="Password" />
+      <button id="registerBtn" onclick="registerUser()">Register</button>
+      <p class="muted">Already have an account? <a href="index.html">Login</a></p>
+      <p id="msg" class="message"></p>
+    </div>
+  </div>
+  <script src="js/api.js"></script>
+  <script>
+    async function registerUser() {
+      const btn = document.getElementById("registerBtn");
+      const msg = document.getElementById("msg");
+      msg.className = "message";
+      try {
+        btn.disabled = true;
+        await apiFetch("/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: document.getElementById("name").value,
+            email: document.getElementById("email").value,
+            password: document.getElementById("password").value,
+            role: "analyst"
+          }),
+        });
+        msg.className = "message success";
+        msg.innerText = "Registration successful. Redirecting to login...";
+        location.href = "index.html";
+      } catch (e) {
+        msg.className = "message error";
+        msg.innerText = "Register failed: " + apiErrorMessage(e);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>

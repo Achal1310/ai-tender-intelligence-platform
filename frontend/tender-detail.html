@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tender Detail</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body onload="loadDetail()">
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-card"><div class="spinner"></div><span>Loading tender detail...</span></div>
+  </div>
+  <div class="topbar">
+    <strong>Tender Detail</strong>
+    <a href="dashboard.html" style="color:white;">Back</a>
+  </div>
+  <div class="container">
+    <div class="card">
+      <h2 id="title"></h2>
+      <p id="summary"></p>
+      <button class="secondary" onclick="exportPdf()">Export PDF</button>
+      <button class="secondary" onclick="exportExcel()">Export Excel</button>
+    </div>
+    <div class="grid">
+      <div class="card"><h3>Clauses</h3><div id="clauses"></div></div>
+      <div class="card"><h3>Risks</h3><div id="risks"></div></div>
+    </div>
+    <div class="card">
+      <h3>BOQ Items</h3>
+      <table>
+        <thead><tr><th>Item</th><th>Qty</th><th>Unit</th><th>Rate</th><th>Total</th></tr></thead>
+        <tbody id="boqRows"></tbody>
+      </table>
+    </div>
+  </div>
+  <script src="js/api.js"></script>
+  <script>
+    const tenderId = new URLSearchParams(location.search).get("id");
+    async function loadDetail() {
+      try {
+        const tender = await apiFetch(`/tender/${tenderId}`);
+        const clauses = await apiFetch(`/clauses/${tenderId}`);
+        const boq = await apiFetch(`/boq/${tenderId}`);
+        const risks = await apiFetch(`/risk-analysis/${tenderId}`);
+        document.getElementById("title").innerText = tender.title;
+        document.getElementById("summary").innerText = tender.summary;
+        document.getElementById("clauses").innerHTML = clauses.map(c => `<p><b>${c.clause_type}:</b> ${c.clause_text}</p>`).join("") || "<p class='muted'>No clauses yet.</p>";
+        document.getElementById("risks").innerHTML = risks.map(r => `<p><b>${r.severity.toUpperCase()}</b> - ${r.risk_type}<br/>${r.description}</p>`).join("") || "<p class='muted'>No risks yet.</p>";
+        document.getElementById("boqRows").innerHTML = boq.map(b => `<tr><td>${b.item_name}</td><td>${b.quantity}</td><td>${b.unit}</td><td>${b.unit_rate}</td><td>${b.total_cost}</td></tr>`).join("");
+      } catch (e) {
+        alert("Failed to load tender detail: " + apiErrorMessage(e));
+      }
+    }
+    async function exportPdf() {
+      const response = await apiFetch(`/export/pdf/${tenderId}`);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+    }
+    async function exportExcel() {
+      const response = await apiFetch(`/export/excel/${tenderId}`);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+    }
+  </script>
+</body>
+</html>
